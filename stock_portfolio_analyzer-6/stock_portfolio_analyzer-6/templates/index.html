@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock Portfolio Analyzer — Institutional Quant Engine</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <!-- Application Global Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-identity" onclick="window.location.href='/'">
+        <div class="brand-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+            <polyline points="16 7 22 7 22 13"></polyline>
+          </svg>
+        </div>
+        <span class="brand-text">Portfolio Analyzer</span>
+        <span class="brand-badge">Quant Terminal</span>
+      </div>
+
+      <nav class="nav-menu">
+        <a href="/" class="nav-link active">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Dashboard
+        </a>
+        <a href="/portfolio" class="nav-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          </svg>
+          My Portfolio
+        </a>
+      </nav>
+    </div>
+
+    <div class="header-right">
+      <div class="market-status-pill">
+        <span class="status-dot"></span>
+        <span>NSE · 131 LIVE TICKERS</span>
+      </div>
+
+      <div class="auth-nav">
+        {% if current_user.is_authenticated %}
+          <div class="user-profile-btn">
+            <div class="user-avatar">{{ current_user.username[0]|upper }}</div>
+            <span>{{ current_user.username }}</span>
+          </div>
+          <a href="/logout" class="btn-auth-text">Sign out</a>
+        {% else %}
+          <a href="/login" class="btn-auth-text">Sign in</a>
+          <a href="/register" class="btn-auth-primary">Open Account</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- Real-Time Ticker Strip -->
+  <div class="ticker-strip">
+    <div class="ticker-content" id="tickerTrack"></div>
+  </div>
+
+  <!-- Main Application Body -->
+  <main class="main-wrapper">
+
+    <!-- Top Portfolio & Model Metrics Hero -->
+    <section class="portfolio-hero">
+      <div class="hero-metric primary">
+        <span class="metric-label">Benchmark Portfolio Value</span>
+        <span class="metric-value-large tabular-nums">₹842,390.00</span>
+        <span class="metric-delta up">
+          ▲ +₹6,840.25 (+0.82%) Today
+        </span>
+      </div>
+
+      <div class="hero-metric">
+        <span class="metric-label">Total Cumulative Gain</span>
+        <span class="metric-value-medium tabular-nums" style="color:var(--profit);">+₹142,390.00</span>
+        <span class="metric-delta up">+20.34% All-Time</span>
+      </div>
+
+      <div class="hero-metric">
+        <span class="metric-label">Universe Tracked</span>
+        <span class="metric-value-medium tabular-nums">131 Equities</span>
+        <span class="metric-delta neutral">NSE Benchmark Pool</span>
+      </div>
+
+      <div class="hero-metric">
+        <span class="metric-label">Model Test Accuracy</span>
+        <span class="metric-value-medium tabular-nums" style="color:var(--accent-primary);">87.99%</span>
+        <span class="metric-delta neutral">ROC-AUC 0.9547</span>
+      </div>
+
+      <div class="hero-metric">
+        <span class="metric-label">Quant Signals</span>
+        <div style="display:flex; gap:8px; margin-top:4px;">
+          <span class="signal-pill BUY" style="padding:2px 7px;">27 BUY</span>
+          <span class="signal-pill SELL" style="padding:2px 7px;">27 SELL</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Performance Chart & Analytics Grid -->
+    <section class="dashboard-grid-2col">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Portfolio Performance</div>
+            <div class="card-subtitle">Historical trajectory & model backtested growth</div>
+          </div>
+          <div class="timeframe-pill-group">
+            <button class="tf-btn" data-tf="1D">1D</button>
+            <button class="tf-btn" data-tf="1W">1W</button>
+            <button class="tf-btn active" data-tf="1M">1M</button>
+            <button class="tf-btn" data-tf="3M">3M</button>
+            <button class="tf-btn" data-tf="6M">6M</button>
+            <button class="tf-btn" data-tf="1Y">1Y</button>
+            <button class="tf-btn" data-tf="ALL">ALL</button>
+          </div>
+        </div>
+        <div class="chart-container" id="portfolioChartContainer"></div>
+      </div>
+
+      <div class="analytics-rail">
+        <div class="card" style="height:100%;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Sector Allocation</div>
+              <div class="card-subtitle">Exposure across market segments</div>
+            </div>
+          </div>
+          <div class="allocation-bar-wrap">
+            <div class="allocation-stacked-bar">
+              <div class="alloc-seg" style="width:32%; background:#3b82f6;" title="Banking & Financials: 32%"></div>
+              <div class="alloc-seg" style="width:24%; background:#10b981;" title="IT & Software: 24%"></div>
+              <div class="alloc-seg" style="width:18%; background:#f59e0b;" title="Consumer & FMCG: 18%"></div>
+              <div class="alloc-seg" style="width:14%; background:#8b5cf6;" title="Energy & Commodities: 14%"></div>
+              <div class="alloc-seg" style="width:12%; background:#64748b;" title="Auto & Industrials: 12%"></div>
+            </div>
+          </div>
+          <div class="alloc-legend">
+            <div class="alloc-row">
+              <span class="alloc-item-label"><span class="alloc-dot" style="background:#3b82f6;"></span>Banking &amp; Financials</span>
+              <span class="alloc-item-pct">32.0%</span>
+            </div>
+            <div class="alloc-row">
+              <span class="alloc-item-label"><span class="alloc-dot" style="background:#10b981;"></span>IT &amp; Software</span>
+              <span class="alloc-item-pct">24.0%</span>
+            </div>
+            <div class="alloc-row">
+              <span class="alloc-item-label"><span class="alloc-dot" style="background:#f59e0b;"></span>Consumer &amp; FMCG</span>
+              <span class="alloc-item-pct">18.0%</span>
+            </div>
+            <div class="alloc-row">
+              <span class="alloc-item-label"><span class="alloc-dot" style="background:#8b5cf6;"></span>Energy &amp; Commodities</span>
+              <span class="alloc-item-pct">14.0%</span>
+            </div>
+            <div class="alloc-row">
+              <span class="alloc-item-label"><span class="alloc-dot" style="background:#64748b;"></span>Auto &amp; Industrials</span>
+              <span class="alloc-item-pct">12.0%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Institutional Analyst Research Notes -->
+    <section class="analyst-section">
+      <div class="card-title" style="margin-bottom:4px;">Analyst Notes &amp; Quantitative Insights</div>
+      <div class="card-subtitle" style="margin-bottom:12px;">Automated research synthesis from technical model evaluations</div>
+      <div class="analyst-grid" id="analystGrid"></div>
+    </section>
+
+    <!-- Market Screener & Universe Table -->
+    <section class="table-container-card">
+      <div class="table-toolbar">
+        <div class="toolbar-left">
+          <div class="search-input-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" class="table-search-input" id="tableSearchInput" placeholder="Filter by symbol or company...">
+          </div>
+          <div class="filter-tab-group">
+            <button class="filter-tab active" data-filter="ALL">All Stocks</button>
+            <button class="filter-tab" data-filter="BUY">Conviction (BUY)</button>
+            <button class="filter-tab" data-filter="SELL">Risk Mitigation (SELL)</button>
+            <button class="filter-tab" data-filter="HOLD">Neutral (HOLD)</button>
+          </div>
+        </div>
+        <div style="font-size:12px; color:var(--text-muted);" id="tableCountBadge">131 Instruments</div>
+      </div>
+
+      <table class="financial-table">
+        <thead>
+          <tr>
+            <th>Company &amp; Instrument</th>
+            <th>Market Price</th>
+            <th>5D Momentum</th>
+            <th>RSI (14)</th>
+            <th>20D SMA</th>
+            <th>Upside Probability</th>
+            <th>Quant Signal</th>
+          </tr>
+        </thead>
+        <tbody id="marketTableBody"></tbody>
+      </table>
+    </section>
+
+    <!-- Institutional Disclaimer -->
+    <footer style="margin-top:36px; padding:18px 22px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-md); font-size:12px; color:var(--text-muted); line-height:1.6;">
+      <strong style="color:var(--text-primary);">Institutional Research Notice:</strong> This terminal provides algorithmic quantitative analysis based on technical indicators and gradient-boosted decision trees. Market evaluations reflect statistical pattern recognition and historical momentum modeling. This software does not constitute formal financial advisory services.
+    </footer>
+
+  </main>
+
+  <!-- Asset Terminal Modal (Single Stock Deep Dive) -->
+  <div class="terminal-modal-overlay" id="terminalModalOverlay">
+    <div class="terminal-modal">
+      <div class="modal-head">
+        <div class="modal-symbol-badge">
+          <span class="modal-ticker" id="modalTicker">—</span>
+          <span class="modal-exchange-pill">NSE</span>
+          <span style="font-size:12.5px; color:var(--text-muted);" id="modalCompany">—</span>
+        </div>
+        <button class="modal-close-btn" id="modalCloseBtn">✕</button>
+      </div>
+      <div class="modal-content-body">
+        <div class="quote-hero-row">
+          <div>
+            <div class="quote-big-price tabular-nums" id="modalLivePrice">—</div>
+            <div class="metric-delta" id="modalDayChange">—</div>
+          </div>
+          <div>
+            <span class="signal-pill" id="modalSignalBadge">—</span>
+          </div>
+        </div>
+
+        <div style="height:160px; background:var(--bg-app); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:10px;" id="modalChartWrap"></div>
+
+        <div class="modal-indicators-grid">
+          <div class="indicator-cell">
+            <div class="lbl">RSI (14D)</div>
+            <div class="val" id="modalRSI">—</div>
+          </div>
+          <div class="indicator-cell">
+            <div class="lbl">MACD</div>
+            <div class="val" id="modalMACD">—</div>
+          </div>
+          <div class="indicator-cell">
+            <div class="lbl">20D SMA</div>
+            <div class="val" id="modalSMA20">—</div>
+          </div>
+          <div class="indicator-cell">
+            <div class="lbl">5D Momentum</div>
+            <div class="val" id="modalMomentum">—</div>
+          </div>
+          <div class="indicator-cell">
+            <div class="lbl">Upside Probability</div>
+            <div class="val" style="color:var(--accent-primary);" id="modalUpProb">—</div>
+          </div>
+          <div class="indicator-cell">
+            <div class="lbl">Sector</div>
+            <div class="val" style="font-size:11.5px;" id="modalSector">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  {% include "_chatbot.html" %}
+</body>
+</html>
